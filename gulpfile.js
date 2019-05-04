@@ -4,7 +4,7 @@ const shell = require('gulp-shell');
 
 const tsProject = ts.createProject('server/tsconfig.json');
 
-let distDir = 'dist/private/';
+let distDir = 'dist/';
 let distAssetDir = distDir + 'assets/';
 let projectAppDir = 'app/';
 let projectAssetsDir = projectAppDir + 'assets/';
