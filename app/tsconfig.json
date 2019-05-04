@@ -3,8 +3,11 @@
     "target": "es6",
     "module": "commonjs",
     "lib": ["es2018","dom"],
-    "outDir": "dist/",
-    "sourceMap": true
+    "outDir": "../dist/",
+    "sourceMap": true,
+    "types": [
+      "node"
+    ]
   },
   "exclude": [
     //"node_modules"
