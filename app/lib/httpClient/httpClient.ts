@@ -5,7 +5,7 @@ export class HttpClient {
 			request(link, (err, res, data) => {
 				if(!err && res.statusCode === 200)
 					resolve(data);
-				reject(err);
+				reject([err,res]);
 			})
 		})
 	}

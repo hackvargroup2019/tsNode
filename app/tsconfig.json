@@ -6,7 +6,8 @@
     "outDir": "../dist/",
     "sourceMap": true,
     "types": [
-      "node"
+      "node",
+      "jquery"
     ]
   },
   "exclude": [
