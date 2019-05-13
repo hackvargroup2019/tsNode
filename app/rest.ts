@@ -1,4 +1,4 @@
-import {App, checkContex, checkOtherLogo, checkSite, detectLogoFrom} from "./app";
+import {App, checkContex, checkOtherLogo, checkSite, compareHash, detectLogoFrom} from "./app";
 import {Crawler} from "./crawler/crawler";
 const bodyParser = require('body-parser');
 const express = require('express');
@@ -82,6 +82,27 @@ export class Rest {
 		/**
 		 * controlla il testo contenuto nell'immagine definita in url
 		 */
+		this.routes.post("/luis", (req, res) => {
+
+		});
+
+		/**
+		 * controlla la bontà del logo
+		 */
+		this.routes.post("/affinity/:target", (req, res) => {
+			let link = req.body.url.split(',');
+			let param = req.params;
+			console.log(link,param);
+			compareHash(link,param.target).then((response)=>{
+				res.status(200);
+				res.send(response);
+				console.log(response);
+			}).catch((err)=>{
+				res.status(500);
+				res.send(err);
+				console.log(err);
+			})
+		});
 	}
 
 	start(){

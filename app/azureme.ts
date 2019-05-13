@@ -39,7 +39,31 @@ export class Azureme{
     }
 
     checkHash(link,target){
-
+        switch(target){
+            case 'lube': target = 1; break;
+            case 'creo': target = 2; break;
+            default: target = 0;
+        }
+        let https = require('http');
+        let body = target;
+        let uri = '';
+        return new Promise<any>((resolve, reject) => {
+            let option = {
+                method:'POST',
+                url:'http://scrapp.northeurope.cloudapp.azure.com:5000/test/',
+                formData: {
+                    url: link,
+                    type: target
+                }
+            };
+            console.log(option);
+            request.post(option,(err, httpResponse, body)=>{
+                if(err) reject(err)
+                else{
+                    resolve(body);
+                }
+            })
+        })
     }
 
     luisme(text){
@@ -188,7 +212,7 @@ export class Azureme{
         })
     }
 
-    sentibility= 0.65;
+    sentibility= 0.50;
     parseLuciaOcr(result,target): Rect[]{
         let validImgs: Rect[] = [];
         //console.log(result)

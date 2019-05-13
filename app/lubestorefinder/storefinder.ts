@@ -84,7 +84,7 @@ export class StoreFinder{
                 let storesToSearch = [];
                 for(let i = 1; i < 4; i++){
                     let stores = document.querySelectorAll("div.col-sm-4.text-center.tab" + i +" p");
-                    for(let store of stores){
+                    stores.forEach((store)=> {
                         try {
                             $(store).click();
                             let storeDesc = document.querySelector("div.gm-style-iw div div div");
@@ -105,7 +105,7 @@ export class StoreFinder{
                         } catch(error) {
                             console.log("Error:", error);
                         }
-                    }
+                    });
                 }
                 return { "foundLinks": links, "storesToSearch": storesToSearch}
             });

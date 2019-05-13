@@ -201,18 +201,21 @@ export function detectLogoFrom(link,target): Promise<string[]>{
 					console.log('LUCIA:', r);
 					rects.push(r);
 				});
-				console.log('Converto BoundingBox da percentuale a intero');
+				console.log('Converto BoundingBox da percentuale a intero',rects);
 			}).then(() => {
 				//TODO cropping immagine originale con ogni bounding box e salvataggio in locale
+				console.log('cropping immagine originale con ogni bounding box e salvataggio in locale',rects);
 				let c = 0;
 				imageSaved = 0;
 				let imgs = [];
+				let tg = rects.length;
 				if(rects.length===0){
 					reject('no box');
 				}else {
 					rects.forEach((r) => {
 						gimp.read(link).then((img: Jimp) => {
 							let name = 'temp' + (c++);
+							r = resizeLube(r, 1);
 							img.crop(r.x, r.y, r.w, r.h, () => {
 								//
 								console.log('Immagine salvata', name)
@@ -224,11 +227,10 @@ export function detectLogoFrom(link,target): Promise<string[]>{
 					});
 				}
 				function tryResolve(blobUrls){
-					console.log(c,rects.length);
-					if(imageSaved === rects.length)
+					console.log(c,tg);
+					if(imageSaved === tg)
 						resolve(blobUrls);
 				}
-				console.log('cropping immagine originale con ogni bounding box e salvataggio in locale');
 			})
 		});
 	});
@@ -261,9 +263,20 @@ function trySaveAllToBlobs(img: Jimp,name: string,tryResolve){
 
 }
 
-function compareHash(blobUrls: string[]){
+export function compareHash(blobUrls: string[], target: string): Promise<any>{
 	//TODO chiamata allo script Python PixelBinning
-	app.azure.checkHash(blobUrls,target);
+	return  new Promise<any>((resolve,reject)=>{
+		blobUrls.forEach(blob => {
+			app.azure.checkHash(blob,target).then((res)=>{
+				resolve(res);
+			}).catch((err)=>{
+				reject(err);
+			})
+		})
+
+	})
+
+
 
 }
 
