@@ -4,9 +4,23 @@
   "description": "",
   "main": "dist/private/app.js",
   "dependencies": {
+    "azure-storage": "^2.10.3",
+    "canvas": "^2.5.0",
     "cheerio": "^1.0.0-rc.3",
+    "cropperjs": "^1.5.1",
+    "easyimage": "^3.1.1",
+    "express": "^4.16.4",
     "headless-chrome-crawler": "^1.8.0",
-    "request": "^2.88.0"
+    "image-clipper": "^0.4.4",
+    "image-downloader": "^3.4.2",
+    "image-js": "^0.21.6",
+    "image-size": "^0.7.4",
+    "jimp": "^0.6.4",
+    "node-tesseract-ocr": "^0.1.0",
+    "ocr": "^4.0.23",
+    "pureimage": "^0.1.6",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
   },
   "devDependencies": {
     "@types/gulp": "^4.0.5",

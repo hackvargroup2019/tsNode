@@ -1,50 +1,240 @@
-import {HttpClient} from "./lib/httpClient/httpClient";
 import {Azureme} from "./azureme";
+import {Rect} from "./rect";
+import {links} from "./links";
+import {crop, resizeLube, saveImg} from "./helper";
+import Jimp = require("jimp");
+import {downloadImage} from "./imgDownloader";
+import {Rest} from "./rest";
 require('events').EventEmitter.defaultMaxListeners = 5;
-
-const cheerio = require('cheerio');
-function uniq(a) {
-	return a.sort().filter(function(item, pos, ary) {
-		return !pos || item != ary[pos - 1];
-	})
-}
 
 const PATH = 'dist/assets/imgs/';
 export class App {
-	private httpClient = new HttpClient();
-	link = 'https://www.cucinelube.it/public/image/cucinelube_x2.png';
+	azure = new Azureme();
+
+	constructor() {
+		console.log('app creata');
+	}
+
+	startSearch(link: string, target: string): Promise<Rect[]> {
+		return new Promise<Rect[]>((resolve)=>{
+			this.azure.homeOcr(link).then((res)=>{
+				resolve(this.azure.parseLuciaOcr(res,target));
+			});
+		})
+	}
 	links = [];
 	page = 0;
 	private baselink: any;
 
-	constructor(){
-		console.log('app creata');
-		this.baselink = this.link.split('//');
-		this.baselink = this.baselink[0] + '//' + this.baselink[1].split('/')[0];
+	getCroppedFile(filename) {
+		return `/home/ldc/WebstormProjects/tsNode/dist/assets/imgs/cropped/${filename}.png`;
 	}
 
-	getCreoLube(link: string) : Promise<any>{
-		let azure = new Azureme();
-		return azure.evaluate(link,['es','en']);
+	startRefine(link: string,pathNum: number): Promise<any>{
+		if(pathNum === 3){
+			return new Promise<any>((resolve,reject)=>{
+				this.azure.ocr2(link,pathNum).then((res)=>{
+					//console.log('result ocr2',res);
+					resolve(res);
+				}).catch((err)=>{
+					console.log(err);
+					reject(err);
+				})
+			})
+
+		}else{
+			return this.azure.evaluate(link,['en'],pathNum);
+		}
 	}
 }
 
-let app = new App();
-app.getCreoLube(app.link).then((result) => {
-	console.log(JSON.stringify(result));
-	//result = result;
-	//console.log(result.regions);
-	/*result.regions.forEach((lines => {
-		let line = '';
-		lines.words.forEach(word => {
-			line+=word.text+' ';
-		})
-		console.log(line);
-	}))*/
 
-}).catch((err) => {
-	if(err[1])
-		console.error('error:', err[0], err[1].statusCode);
-	else
-		console.error('err:',err);
+
+
+
+let app = new App();
+let rest = new Rest(app);
+rest.start();
+let link = links[13]; //si 0	1 4		no 12 2 5 6 7
+let pathNum = 3;
+let c =0;
+let target = 'lube';
+let imgWidth= 0;
+let imgHeigth= 0;
+
+let rects: Rect[] = [];
+let imageSaved = 0;
+let gimp = require('jimp');
+
+export function detectLogoFrom(link,target) {
+	let imgOriginal = null;
+	gimp.read(link).then((img: Jimp) => {
+		imgWidth = img.getWidth();
+		imgHeigth = img.getHeight();
+		imgOriginal = img;
+		//console.log(imgWidth, imgHeigth)
+		app.startSearch(link, target).then((result) => {
+
+			//TODO recupero i bounding box dei loghi rilevati
+			console.log("a lucia:", link);
+			rects = result;
+		}).catch((err) => {
+			//TODO gestione errore su search
+			console.log(err)
+		}).then(() => {
+
+			//TODO Converto BoundingBox da percentuale a intero
+			let exRect: Rect[] = rects;
+			rects = [];
+			exRect.forEach((res) => {
+				let r = new Rect(
+					res['left'] * imgWidth,
+					res['top'] * imgHeigth,
+					res['width'] * imgWidth,
+					res['height'] * imgHeigth
+				);
+				//console.log('LUCIA:', r);
+				rects.push(r);
+			});
+		}).then(() => {
+
+			//TODO cropping immagine originale con ogni bounding box e salvataggio in locale
+			let c = 0;
+			rects.forEach((r) => {
+				gimp.read(link).then((img: Jimp) => {
+					let name = 'temp' + (c++);
+					img.crop(r.x, r.y, r.w, r.h, () => {
+						saveImg(img, name).then(() => {
+							console.log('Immagine salvata', name)
+							imageSaved++;
+							trySaveAllToBlobs()
+						});
+					});
+				});
+			});
+
+		})
+	});
+}
+
+
+
+function trySaveAllToBlobs(){
+	if(imageSaved === rects.length) {
+		//TODO salvataggio blob su azure
+		let storage = require('azure-storage');
+		let connString = 'DefaultEndpointsProtocol=https;AccountName=azuremenow9e12;AccountKey=mn0Y/RXFhRgZlVx0dbACfdqVFAQJrPswdWq9U3yQdaa9b7+u7Oe0Lo6lkkoCpc5d/S0k7OXevaGlqwv/QrkMuA==;EndpointSuffix=core.windows.net'
+		let blobService = storage.createBlobService(connString);
+		let blobUrls: string[] = [];
+
+		let c = 0;
+		rects.forEach((r) => {
+			let name = 'temp' + (c++);
+			let filepath = app.getCroppedFile(name);
+			blobService.createBlockBlobFromLocalFile('croppedimgs', name, filepath, (err) => {
+				if (err) console.log('res:', err);
+				let url = 'https://azuremenow9e12.blob.core.windows.net/croppedimgs/' + name;
+				blobUrls.push(url);
+				console.log(`uri${c++}`, url);
+			});
+		});
+		//compareHash(blobUrls);
+	}
+}
+
+function compareHash(blobUrls: string[]){
+	//TODO chiamata allo script Python PixelBinning
+	app.azure.checkHash(blobUrls,target);
+
+}
+
+function getPageTextOcr(link){
+	app.azure.connect(link,'it',3).then((res)=>{
+		console.log(res);
+	});
+}
+		//console.log(w,h);
+/*
+					paths.forEach((filename)=>{
+						let filepath = app.getCroppedFile(filename);
+						//console.log('salvo in blob da',filepath);
+						blobService.createBlockBlobFromLocalFile('croppedimgs',filename,filepath,(err)=>{
+							if(err) console.log('res:',err);
+							let url = 'https://azuremenow9e12.blob.core.windows.net/croppedimgs/'+ filename;
+							console.log(`uri${c++}`,url);
+							/*
+							app.startRefine(url,pathNum).then((res)=>{
+								//console.log('refinded',res);
+								let rects: Rect[] = [];
+								if(pathNum === 3){
+									rects = app.azure.getOcr2BoundingBox(res,target);
+								}else{
+									rects = app.azure.getOcrBoundingBox(res,target);
+								}
+								//console.log('bbox:',res);
+								let imgCount = 0;
+								rects.forEach((rect)=>{
+									let nr = r;
+									nr.x += rect.x
+									nr.y += rect.y
+									console.log('OCR',rect,nr)
+									nr = resizeLube(nr,1);
+									crop(link,nr).then((img:Jimp)=>{
+										saveImg(img,'ocr_'+filename).then((res)=>{
+											if(res){
+												console.log('File salvato')
+											}else {
+												console.log('errore');
+											}
+										})
+									});
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
+*/
+
+
+	/*
+	let lubeFounded = false;
+
+	ImgDownloader.download(link).then(({filename, image}) => {
+		let originWidth, originHeight;
+		let sizeOf = require('image-size');
+		let dimensions = sizeOf(filename);
+		originWidth = dimensions.width;
+		originHeight = dimensions.height;
+		console.log('File saved to', filename);
+	}).catch((err) => {
+		console.log(err)
+	});
+
+	 */
+
+/*
+//console.log(r);
+r = new Rect(r['left'] * originWidth, r['top'] * originHeight, r['width'] * originWidth, r['height'] * originHeight);
+r = app.resizeLube(r,1);
+//console.log(r);
+app.crop(filename, r, c++).then((img)=>{
+	console.log("background:",img._background)
+
 });
+lubeFounded = true;
+if (!lubeFounded) {
+	console.log('no', target);
+}
+)
+.catch((err) => {
+	console.log(err)
+})
+
+
+
+
+//let http = require('http');
+*/
