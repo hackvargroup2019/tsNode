@@ -42,6 +42,10 @@ export class Azureme{
 
     }
 
+    luisme(text){
+                
+    }
+
     connect(documents,lang,pathNum): Promise<any> {
         let https = require('https');
         let accessKey = 'beb338b07ddc440cb07ef4a5ef0c9f97';

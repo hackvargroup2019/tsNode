@@ -66,80 +66,89 @@ let rects: Rect[] = [];
 let imageSaved = 0;
 let gimp = require('jimp');
 
-export function detectLogoFrom(link,target) {
-	let imgOriginal = null;
-	gimp.read(link).then((img: Jimp) => {
-		imgWidth = img.getWidth();
-		imgHeigth = img.getHeight();
-		imgOriginal = img;
-		//console.log(imgWidth, imgHeigth)
-		app.startSearch(link, target).then((result) => {
+export function detectLogoFrom(link,target): Promise<string[]>{
+	return new Promise<string[]>((resolve,reject) => {
+		let imgOriginal = null;
+		gimp.read(link).then((img: Jimp) => {
+			imgWidth = img.getWidth();
+			imgHeigth = img.getHeight();
+			imgOriginal = img;
+			//console.log(imgWidth, imgHeigth)
+			app.startSearch(link, target).then((result) => {
 
-			//TODO recupero i bounding box dei loghi rilevati
-			console.log("a lucia:", link);
-			rects = result;
-		}).catch((err) => {
-			//TODO gestione errore su search
-			console.log(err)
-		}).then(() => {
+				//TODO recupero i bounding box dei loghi rilevati
+				console.log("a lucia:", link);
+				rects = result;
+			}).catch((err) => {
+				//TODO gestione errore su search
+				console.log(err)
+			}).then(() => {
 
-			//TODO Converto BoundingBox da percentuale a intero
-			let exRect: Rect[] = rects;
-			rects = [];
-			exRect.forEach((res) => {
-				let r = new Rect(
-					res['left'] * imgWidth,
-					res['top'] * imgHeigth,
-					res['width'] * imgWidth,
-					res['height'] * imgHeigth
-				);
-				//console.log('LUCIA:', r);
-				rects.push(r);
-			});
-		}).then(() => {
+				//TODO Converto BoundingBox da percentuale a intero
+				let exRect: Rect[] = rects;
+				rects = [];
+				exRect.forEach((res) => {
+					let r = new Rect(
+						res['left'] * imgWidth,
+						res['top'] * imgHeigth,
+						res['width'] * imgWidth,
+						res['height'] * imgHeigth
+					);
+					//console.log('LUCIA:', r);
+					rects.push(r);
+				});
+			}).then(() => {
 
-			//TODO cropping immagine originale con ogni bounding box e salvataggio in locale
-			let c = 0;
-			rects.forEach((r) => {
-				gimp.read(link).then((img: Jimp) => {
-					let name = 'temp' + (c++);
-					img.crop(r.x, r.y, r.w, r.h, () => {
-						saveImg(img, name).then(() => {
-							console.log('Immagine salvata', name)
-							imageSaved++;
-							trySaveAllToBlobs()
+				//TODO cropping immagine originale con ogni bounding box e salvataggio in locale
+				let c = 0;
+				imageSaved = 0;
+				rects.forEach((r) => {
+					gimp.read(link).then((img: Jimp) => {
+						let name = 'temp' + (c++);
+						img.crop(r.x, r.y, r.w, r.h, () => {
+							//saveImg(img, name).then(() => {
+								console.log('Immagine salvata', name)
+								imageSaved++;
+								trySaveAllToBlobs(img,name)
+							//});
 						});
 					});
 				});
-			});
 
-		})
-	});
-}
-
-
-
-function trySaveAllToBlobs(){
-	if(imageSaved === rects.length) {
-		//TODO salvataggio blob su azure
-		let storage = require('azure-storage');
-		let connString = 'DefaultEndpointsProtocol=https;AccountName=azuremenow9e12;AccountKey=mn0Y/RXFhRgZlVx0dbACfdqVFAQJrPswdWq9U3yQdaa9b7+u7Oe0Lo6lkkoCpc5d/S0k7OXevaGlqwv/QrkMuA==;EndpointSuffix=core.windows.net'
-		let blobService = storage.createBlobService(connString);
-		let blobUrls: string[] = [];
-
-		let c = 0;
-		rects.forEach((r) => {
-			let name = 'temp' + (c++);
-			let filepath = app.getCroppedFile(name);
-			blobService.createBlockBlobFromLocalFile('croppedimgs', name, filepath, (err) => {
-				if (err) console.log('res:', err);
-				let url = 'https://azuremenow9e12.blob.core.windows.net/croppedimgs/' + name;
-				blobUrls.push(url);
-				console.log(`uri${c++}`, url);
-			});
+			})
 		});
-		//compareHash(blobUrls);
-	}
+
+		function trySaveAllToBlobs(img: Jimp,name: string){
+			//if(imageSaved === rects.length) {
+				//TODO salvataggio blob su azure
+				let storage = require('azure-storage');
+				let connString = 'DefaultEndpointsProtocol=https;AccountName=azuremenow9e12;AccountKey=mn0Y/RXFhRgZlVx0dbACfdqVFAQJrPswdWq9U3yQdaa9b7+u7Oe0Lo6lkkoCpc5d/S0k7OXevaGlqwv/QrkMuA==;EndpointSuffix=core.windows.net'
+				let blobService = storage.createBlobService(connString);
+				let blobUrls: string[] = [];
+				//rects.forEach((r) => {
+				//let filepath = app.getCroppedFile(name);
+				img.getBuffer(img.getMIME(), (buffer)=>{
+					//console.log(buffer)
+					blobService.createAppendBlobFromStream('croppedimgs', name,img , (err) => {
+						if (err) console.log('res:', err);
+						let url = 'https://azuremenow9e12.blob.core.windows.net/croppedimgs/' + name;
+						blobUrls.push(url);
+						console.log(`uri${c}`, url);
+						tryResolve();
+					});
+				})
+				//});
+				//compareHash(blobUrls);
+				function tryResolve(){
+					console.log(c,rects.length);
+					if(imageSaved === rects.length)
+						resolve(blobUrls);
+				}
+
+			}
+		//}
+
+	});
 }
 
 function compareHash(blobUrls: string[]){
@@ -153,6 +162,8 @@ function getPageTextOcr(link){
 		console.log(res);
 	});
 }
+/*
+app.
 		//console.log(w,h);
 /*
 					paths.forEach((filename)=>{

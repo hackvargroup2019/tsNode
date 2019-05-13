@@ -5,6 +5,7 @@
   "main": "dist/private/app.js",
   "dependencies": {
     "azure-storage": "^2.10.3",
+    "body-parser": "^1.19.0",
     "canvas": "^2.5.0",
     "cheerio": "^1.0.0-rc.3",
     "cropperjs": "^1.5.1",
