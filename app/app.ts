@@ -5,6 +5,7 @@ import {crop, resizeLube, saveImg} from "./helper";
 import Jimp = require("jimp");
 import {downloadImage} from "./imgDownloader";
 import {Rest} from "./rest";
+import * as fs from'fs';
 require('events').EventEmitter.defaultMaxListeners = 5;
 
 const PATH = 'dist/assets/imgs/';
@@ -106,7 +107,7 @@ export function detectLogoFrom(link,target): Promise<string[]>{
 					gimp.read(link).then((img: Jimp) => {
 						let name = 'temp' + (c++);
 						img.crop(r.x, r.y, r.w, r.h, () => {
-							//saveImg(img, name).then(() => {
+							//
 								console.log('Immagine salvata', name)
 								imageSaved++;
 								trySaveAllToBlobs(img,name)
@@ -127,16 +128,18 @@ export function detectLogoFrom(link,target): Promise<string[]>{
 				let blobUrls: string[] = [];
 				//rects.forEach((r) => {
 				//let filepath = app.getCroppedFile(name);
-				img.getBuffer(img.getMIME(), (buffer)=>{
-					//console.log(buffer)
-					blobService.createAppendBlobFromStream('croppedimgs', name,img , (err) => {
+				saveImg(img, name).then((path) => {
+					//img.getBuffer(img.getMIME(), (buffer) => {
+					blobService.createBlockBlobFromLocalFile('croppedimgs', name, path, (err) => {
 						if (err) console.log('res:', err);
 						let url = 'https://azuremenow9e12.blob.core.windows.net/croppedimgs/' + name;
 						blobUrls.push(url);
 						console.log(`uri${c}`, url);
 						tryResolve();
 					});
-				})
+
+					//})
+				});
 				//});
 				//compareHash(blobUrls);
 				function tryResolve(){

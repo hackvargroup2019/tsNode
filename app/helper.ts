@@ -19,11 +19,11 @@ export function crop(filename, r: Rect): Promise<Jimp> {
 	})
 }
 
-export function saveImg(img: Jimp,name): Promise<boolean> {
-	return new Promise<boolean>((resolve)=>{
-		let path = `/home/ldc/WebstormProjects/tsNode/dist/assets/imgs/cropped/${name}.png`;
+export function saveImg(img: Jimp,name): Promise<string> {
+	return new Promise<string>((resolve)=>{
+		let path = `/temp/imgs/cropped/${name}.png`;
 		img.write(path, () => {
-			resolve(true)
+			resolve(path)
 		});
 	})
 }
