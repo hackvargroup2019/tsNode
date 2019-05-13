@@ -84,9 +84,7 @@ export class Rest {
 		 */
 		this.routes.post("/luis", (req, res) => {
 			let query = req.body.q;
-			let link = req.body.url;
 			callLuis(query).then(out => {
-				console.log(out);
 				res.send({
 					result: out['topScoringIntent']['intent']
 				});
