@@ -20,6 +20,8 @@
     "node-tesseract-ocr": "^0.1.0",
     "npm": "^6.9.0",
     "ocr": "^4.0.23",
+    "path": "^0.12.7",
+    "puppeteer": "^1.15.0",
     "pureimage": "^0.1.6",
     "request": "^2.88.0",
     "request-promise": "^4.2.4"

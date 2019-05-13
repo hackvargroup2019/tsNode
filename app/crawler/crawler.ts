@@ -1,8 +1,10 @@
+import {saveToBlob} from "../app";
+
 const puppeteer = require('puppeteer');
 import { SiteMap } from './sitemap';
 import { Site } from './site';
 import * as fs from 'fs';
-import path from 'path';
+import * as path from 'path';
 import { ImageManager } from './image';
 import Jimp = require('jimp');
 
@@ -86,7 +88,6 @@ export class Crawler {
 						fullPage: true
 					})
 					.catch((err) => console.log(err));
-
 				links = await page.$$eval('a', (as) =>
 					as.map((a) => ({
 						URL: a.href,
@@ -136,23 +137,29 @@ export class Crawler {
 			await browser.close();
 			this.divideImg(imgPath + '/screenshots/')
 		})();
+
 	}
 
 	public divideImg(screenPath: string){
 		console.log(screenPath);
 		let screenshots = fs.readdirSync(screenPath);
+		let c =0;
 		for(let screen of screenshots){
 			let currentScreenPath = path.resolve(screenPath + screen);
 			Jimp.read(currentScreenPath)
-			.then(image => {
+			.then(async image => {
 				let height = image.getHeight();
-				for(let i = 1; i < height / 1000 + 1; i++){
+				for (let i = 1; i < height / 1000 + 1; i++) {
 					console.log("resizing to", currentScreenPath.replace(".png", "") + i + ".png");
 					let imgCopy = image.clone();
-					 
-					imgCopy.crop(0, 1000 * (i-1), 1920, this.min(2000, height - 1000 * (i-1)))
+
+					imgCopy.crop(0, 1000 * (i - 1), 1920, this.min(2000, height - 1000 * (i - 1)))
 						.write(currentScreenPath.replace(".png", "") + i + ".png");
+
 				}
+				await saveToBlob(screenPath).then((blobs)=>{
+
+				});
 			})
 		
 			fs.unlinkSync(currentScreenPath);
