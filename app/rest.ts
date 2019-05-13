@@ -1,4 +1,4 @@
-import {App, checkContex, checkOtherLogo, checkSite, compareHash, detectLogoFrom} from "./app";
+import {App, checkContex, checkOtherLogo, checkSite, compareHash, detectLogoFrom, callLuis} from "./app";
 import {Crawler} from "./crawler/crawler";
 const bodyParser = require('body-parser');
 const express = require('express');
@@ -93,7 +93,12 @@ export class Rest {
 		 * controlla il testo contenuto nell'immagine definita in url
 		 */
 		this.routes.post("/luis", (req, res) => {
-
+			let query = req.body.q;
+			callLuis(query).then(out => {
+				res.send({
+					result: out['topScoringIntent']['intent']
+				});
+			})
 		});
 
 		/**

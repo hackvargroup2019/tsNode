@@ -6,6 +6,7 @@ import Jimp = require("jimp");
 import {downloadImage} from "./imgDownloader";
 import {Rest} from "./rest";
 import * as fs from'fs';
+import * as request from 'request';
 require('events').EventEmitter.defaultMaxListeners = 5;
 
 const PATH = 'dist/assets/imgs/';
@@ -293,6 +294,18 @@ export function compareHash(blobUrls: string[], target: string): Promise<any>{
 
 
 
+}
+
+export function callLuis(query: string): Promise<any> {
+	return new Promise<any>((resolve,reject) => {
+		let entryPoint = 'https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/0e549a0b-7669-45d0-a37c-dec4f0177aba?verbose=true&timezoneOffset=-360&subscription-key=68d6c81c7b4b45ee999d4f796d34c09d&q=';
+		request(entryPoint + query, function (error, response, body) {
+			if (error){
+				reject(error);
+			}
+			resolve(JSON.parse(body));
+		});
+	})
 }
 
 function getPageTextOcr(link){
