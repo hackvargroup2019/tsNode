@@ -152,8 +152,23 @@ export function checkSite(link,target): Promise<string[]>{
 						})
 
 						function trySendRes(){
-							if(results.length === blobs.length)
-								resolve(results);
+							if(results.length === blobs.length){
+								let valid = [];
+								results.forEach(r => {
+									if(r)
+										valid.push(r)
+								})
+								if(valid.length>0){
+									compareHash(valid,target).then((res)=>{
+										resolve([res,valid]);
+									}).catch((err)=> {
+										reject(err);
+									})
+								}else{
+									reject('nulla di fatto');
+								}
+
+							}
 						}
 
 					}

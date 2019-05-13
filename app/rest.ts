@@ -2,10 +2,20 @@ import {App, checkContex, checkOtherLogo, checkSite, compareHash, detectLogoFrom
 import {Crawler} from "./crawler/crawler";
 const bodyParser = require('body-parser');
 const express = require('express');
+const cors = require('cors');
 export class Rest {
 	routes = express();
 
 	constructor(app: App) {
+		var corsOptions = {
+			origin:[
+				'*.*',
+				'http://localhost:4200/'
+			],
+			optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+		}
+		this.routes.options('*', cors(corsOptions));
+		this.routes.use(cors(corsOptions));
 		this.routes.use(bodyParser.json());
 		this.routes.use(bodyParser.urlencoded({extended: true}));
 
